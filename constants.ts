@@ -11,22 +11,15 @@ Professional logo design requirements:
 `;
 
 export const MODEL_OPTIONS: ModelInfo[] = [
-  // Gemini models (support image input/output)
+  // Gemini models (support image input/output via generateContent)
   {
     id: "gemini-3-pro-image-preview",
-    label: "Nano Banana Pro",
+    label: "Gemini 3 Pro",
     description: "Best quality, supports reference images",
     supportsReference: true,
     apiType: "gemini",
   },
-  {
-    id: "gemini-2.0-flash-preview-image-generation",
-    label: "Nano Banana",
-    description: "Fast, supports reference images",
-    supportsReference: true,
-    apiType: "gemini",
-  },
-  // Imagen models (text-to-image only)
+  // Imagen models (text-to-image only via predict endpoint)
   {
     id: "imagen-4.0-ultra-generate-001",
     label: "Imagen 4 Ultra",
@@ -38,20 +31,6 @@ export const MODEL_OPTIONS: ModelInfo[] = [
     id: "imagen-4.0-generate-001",
     label: "Imagen 4",
     description: "High quality",
-    supportsReference: false,
-    apiType: "imagen",
-  },
-  {
-    id: "imagen-3.0-generate-002",
-    label: "Imagen 3",
-    description: "Stable, reliable",
-    supportsReference: false,
-    apiType: "imagen",
-  },
-  {
-    id: "imagen-3.0-fast-generate-001",
-    label: "Imagen 3 Fast",
-    description: "Fastest generation",
     supportsReference: false,
     apiType: "imagen",
   },

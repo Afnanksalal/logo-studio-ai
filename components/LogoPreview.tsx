@@ -85,12 +85,12 @@ export const LogoPreview: React.FC<LogoPreviewProps> = ({
           </div>
         ) : error ? (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-950 p-4">
-            <div className="max-w-sm text-center">
+            <div className="max-w-md w-full text-center">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
               <h3 className="text-slate-200 font-medium mb-2">Error</h3>
-              <p className="text-slate-400 text-sm mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+              <div className="text-slate-400 text-sm mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-800 max-h-32 overflow-y-auto text-left break-words">
                 {error}
-              </p>
+              </div>
               <div className="flex gap-2 justify-center">
                 <Button variant="secondary" size="sm" onClick={onOpenApiKey}>Check Key</Button>
                 <Button size="sm" onClick={onRetry}>Retry</Button>

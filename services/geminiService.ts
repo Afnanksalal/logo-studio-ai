@@ -302,15 +302,19 @@ export async function generateLogo(config: GenerationConfig): Promise<Generation
     const error = err as Error;
     const msg = error.message || "Unknown error";
 
-    // Parse common error patterns
+    // Parse common error patterns and return user-friendly messages
     if (msg.includes("403") || msg.includes("PERMISSION_DENIED")) {
       return { success: false, error: "Invalid API key or no access to this model." };
     }
     if (msg.includes("404") || msg.includes("not found")) {
       return { success: false, error: "Model not found. You may not have access to this model." };
     }
-    if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-      return { success: false, error: "Rate limit exceeded. Please wait a moment and try again." };
+    if (msg.includes("quota") || msg.includes("exceeded") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+      // Extract retry time if present
+      const retryMatch = msg.match(/retry in (\d+\.?\d*)/i);
+      const retryTime = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : null;
+      const retryMsg = retryTime ? ` Try again in ~${retryTime}s.` : " Please wait and try again.";
+      return { success: false, error: `API quota exceeded.${retryMsg}` };
     }
     if (msg.includes("SAFETY") || msg.includes("blocked")) {
       return { success: false, error: "Content blocked by safety filters. Adjust your prompt." };

@@ -1,12 +1,9 @@
 export type AspectRatio = "1:1" | "16:9" | "4:3" | "9:16" | "3:4";
 
 export type ModelType =
-  | "gemini-2.0-flash-preview-image-generation"
   | "gemini-3-pro-image-preview"
-  | "imagen-3.0-generate-002"
-  | "imagen-3.0-fast-generate-001"
-  | "imagen-4.0-generate-001"
-  | "imagen-4.0-ultra-generate-001";
+  | "imagen-4.0-ultra-generate-001"
+  | "imagen-4.0-generate-001";
 
 export interface ModelInfo {
   id: ModelType;

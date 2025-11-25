@@ -10,6 +10,50 @@ import {
 
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
+// Retry configuration for transient errors
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Don't retry client errors (4xx) except 429
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        return response;
+      }
+      
+      // Retry on 429 (rate limit) or 5xx (server errors)
+      if (response.status === 429 || response.status >= 500) {
+        if (attempt < retries) {
+          const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+          await sleep(delay);
+          continue;
+        }
+      }
+      
+      return response;
+    } catch (err) {
+      lastError = err as Error;
+      if (attempt < retries) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+        await sleep(delay);
+      }
+    }
+  }
+  
+  throw lastError || new Error("Request failed after retries");
+}
+
 function getModelInfo(model: ModelType): ModelInfo {
   return MODEL_OPTIONS.find((m) => m.id === model) || MODEL_OPTIONS[0];
 }
@@ -78,6 +122,15 @@ async function generateWithGemini(
     parts.push({ text: prompt });
   }
 
+  // Gemini 2.0 Flash uses responseModalities, Gemini 3 Pro may differ
+  // Include aspect ratio in the prompt since imageSizeConfig isn't supported
+  const aspectPrompt = `\n\nGenerate the image with ${aspectRatio} aspect ratio.`;
+  
+  // Update the text part to include aspect ratio
+  if (parts.length > 0 && "text" in parts[parts.length - 1]) {
+    (parts[parts.length - 1] as { text: string }).text += aspectPrompt;
+  }
+
   const requestBody = {
     contents: [
       {
@@ -86,13 +139,10 @@ async function generateWithGemini(
     ],
     generationConfig: {
       responseModalities: ["IMAGE", "TEXT"],
-      imageSizeConfig: {
-        aspectRatio,
-      },
     },
   };
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(requestBody),
@@ -172,7 +222,7 @@ async function generateWithImagen(
     requestBody.parameters.negativePrompt = negativePrompt;
   }
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(requestBody),
@@ -260,13 +310,22 @@ export async function generateLogo(config: GenerationConfig): Promise<Generation
       return { success: false, error: "Model not found. You may not have access to this model." };
     }
     if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-      return { success: false, error: "Rate limit exceeded. Please wait and try again." };
+      return { success: false, error: "Rate limit exceeded. Please wait a moment and try again." };
     }
     if (msg.includes("SAFETY") || msg.includes("blocked")) {
       return { success: false, error: "Content blocked by safety filters. Adjust your prompt." };
     }
     if (msg.includes("INVALID_ARGUMENT")) {
       return { success: false, error: "Invalid request. Check your prompt and settings." };
+    }
+    if (msg.includes("500") || msg.includes("503") || msg.includes("INTERNAL")) {
+      return { success: false, error: "AI service temporarily unavailable. Please try again." };
+    }
+    if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+      return { success: false, error: "Network error. Check your connection and try again." };
+    }
+    if (msg.includes("timeout") || msg.includes("DEADLINE_EXCEEDED")) {
+      return { success: false, error: "Request timed out. Try a simpler prompt or try again." };
     }
 
     return { success: false, error: msg };

@@ -1,0 +1,9 @@
+# robots.txt for Logo Studio AI
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://logo-studio-ai.vercel.app/sitemap.xml
+
+# Disallow API-like paths (none in this SPA, but good practice)
+Disallow: /api/
